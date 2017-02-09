@@ -28,9 +28,3 @@
 @property (strong, nonatomic) NSArray *originalSupportedOrientations;
 
 @end
-
-@interface ForcedViewController : UIViewController
-
-@property (strong, nonatomic) NSString *calledWith;
-
-@end
