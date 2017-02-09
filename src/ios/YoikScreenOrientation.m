@@ -66,55 +66,24 @@
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
             messageAsDictionary:@{@"device":orientation}];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-
-        // SEE https://github.com/Adlotto/cordova-plugin-recheck-screen-orientation
-        // HACK: Force rotate by changing the view hierarchy.
-		ForcedViewController *vc = [[ForcedViewController alloc] init];
-        vc.calledWith = orientationIn;
-
-        // backgound should be transparent as it is briefly visible
-        // prior to closing.
-        vc.view.backgroundColor = [UIColor clearColor];
-        // vc.view.alpha = 0.0;
-        vc.view.opaque = YES;
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-        // This stops us getting the black application background flash, iOS8
-        vc.modalPresentationStyle = UIModalPresentationOverFullScreen;
-#endif
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.viewController presentViewController:vc animated:NO completion:nil];
-        });
-
+        
+        if ([orientationIn rangeOfString:@"portrait"].location != NSNotFound) {
+            [(CDVViewController*)self.viewController updateSupportedOrientations:@[[NSNumber numberWithInt:UIInterfaceOrientationPortrait]]];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSNumber *value = [NSNumber numberWithInt:UIInterfaceOrientationPortrait];
+                [[UIDevice currentDevice] setValue:value forKey:@"orientation"];
+            });
+            
+        } else if([orientationIn rangeOfString:@"landscape"].location != NSNotFound) {
+            [(CDVViewController*)self.viewController updateSupportedOrientations:@[[NSNumber numberWithInt:UIInterfaceOrientationLandscapeLeft], [NSNumber numberWithInt:UIInterfaceOrientationLandscapeRight]]];
+        
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSNumber *value = [NSNumber numberWithInt:UIInterfaceOrientationLandscapeLeft];
+                [[UIDevice currentDevice] setValue:value forKey:@"orientation"];
+            });
+        }
     }];
 }
 
-@end
-
-@implementation ForcedViewController
-
--(void) viewDidAppear:(BOOL)animated {
-	CDVViewController *presenter = (CDVViewController*)self.presentingViewController;
-	
-	if ([self.calledWith rangeOfString:@"portrait"].location != NSNotFound) {
-		[presenter updateSupportedOrientations:@[[NSNumber numberWithInt:UIInterfaceOrientationPortrait]]];
-
-	} else if([self.calledWith rangeOfString:@"landscape"].location != NSNotFound) {
-		[presenter updateSupportedOrientations:@[[NSNumber numberWithInt:UIInterfaceOrientationLandscapeLeft], [NSNumber numberWithInt:UIInterfaceOrientationLandscapeRight]]];
-	} else {
-		[presenter updateSupportedOrientations:@[[NSNumber numberWithInt:UIInterfaceOrientationLandscapeLeft], [NSNumber numberWithInt:UIInterfaceOrientationLandscapeRight], [NSNumber numberWithInt:UIInterfaceOrientationPortrait]]];
-	}
-	[presenter dismissViewControllerAnimated:NO completion:nil];
-}
-
-- (UIInterfaceOrientationMask) supportedInterfaceOrientations
-{
-    if ([self.calledWith rangeOfString:@"portrait"].location != NSNotFound) {
-        return UIInterfaceOrientationMaskPortrait;
-    } else if([self.calledWith rangeOfString:@"landscape"].location != NSNotFound) {
-        return UIInterfaceOrientationMaskLandscape;
-    }
-    return UIInterfaceOrientationMaskAll;
-}
 @end
